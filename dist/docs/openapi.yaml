@@ -1,0 +1,598 @@
+openapi: 3.1.0
+info:
+  title: Company Brain production API contract
+  version: 0.1.0
+  description: |
+    Proposed production contract; not implemented by the browser demonstrator.
+    Tenant, author and roles come from verified identity, never request bodies.
+    Role permission AND current source ACL AND classification/purpose are required.
+    Invisible resources return the same 404 shape as nonexistent resources.
+    Authorization occurs before model/reranker context and again before response.
+    All mutations audit actor, on-behalf-of identity, policy version and request ID.
+servers:
+  - url: https://brain.example.invalid/v1
+    description: Placeholder; replace with the deployed production origin.
+security:
+  - bearerAuth: []
+paths:
+  /updates:
+    post:
+      operationId: submitDailyUpdate
+      summary: Submit the authenticated employee's structured update
+      description: |
+        Captures a versioned source observation and starts asynchronous extraction.
+        Self-report remains reported/proposed until reviewed; model confidence is
+        not verification. Author and tenant are server-derived. Returns only after
+        durable persistence. Rejects client-supplied author/tenant fields.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInput'
+      responses:
+        '202':
+          $ref: '#/components/responses/AcceptedJob'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /jobs/{job_id}:
+    get:
+      operationId: getProcessingJob
+      summary: Get an authorized processing state
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Requester-authorized stage metadata; no hidden source titles or prompts.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /search:
+    post:
+      operationId: searchKnowledge
+      summary: Search authorized lexical and semantic evidence
+      description: |
+        Candidate filters retain tenant and ACL constraints. Batch authorization
+        precedes text returned to rerankers. Cursor binds query, scope and policy
+        epoch; rejects stale/mismatched cursor. No restricted-result total is returned.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchInput'
+      responses:
+        '200':
+          description: Only readable resources and evidence.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results, as_of]
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SearchResult'
+                  next_cursor: {type: [string, 'null']}
+                  as_of: {type: string, format: date-time}
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '429':
+          $ref: '#/components/responses/Throttled'
+  /ask:
+    post:
+      operationId: askBrain
+      summary: Generate an evidence-grounded answer in the caller's scope
+      description: |
+        Uses accepted knowledge plus clearly marked disputed/observed material only
+        when explicitly relevant. Every material claim cites exact source revisions.
+        If ACL changes during generation, regenerate or withdraw affected claims.
+        Never synthesize globally and redact afterward. Abstain on insufficient evidence.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [question]
+              properties:
+                question: {type: string, minLength: 1, maxLength: 4000}
+                scope:
+                  $ref: '#/components/schemas/Scope'
+                effective_at: {type: string, format: date-time}
+                known_at: {type: string, format: date-time}
+      responses:
+        '200':
+          description: Cited answer or explicit insufficient-evidence result.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, answer, claims, citations, as_of, limitations]
+                properties:
+                  status: {type: string, enum: [answered, insufficient_evidence, disputed]}
+                  answer: {type: string}
+                  claims:
+                    type: array
+                    items:
+                      type: object
+                      required: [text, state, citation_ids]
+                      properties:
+                        text: {type: string}
+                        state: {type: string, enum: [accepted, observed, disputed]}
+                        citation_ids: {type: array, items: {type: string}}
+                  citations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Citation'
+                  as_of: {type: string, format: date-time}
+                  freshness: {type: string}
+                  limitations: {type: array, items: {type: string}}
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '429':
+          $ref: '#/components/responses/Throttled'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+  /graph:
+    get:
+      operationId: getKnowledgeGraph
+      summary: Traverse authorized nodes, edges and evidence
+      description: |
+        Authorize root, every node, every edge and contributing evidence. Do not
+        expose invisible-node counts, degree, labels, or omission reasons. An
+        authorized relationship requires both endpoint access and source access.
+      parameters:
+        - name: root_id
+          in: query
+          required: true
+          schema: {type: string, format: uuid}
+        - name: depth
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 3, default: 1}
+        - name: cursor
+          in: query
+          schema: {type: string, maxLength: 4096}
+      responses:
+        '200':
+          description: Readable graph slice, bounded by server traversal budget.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [nodes, edges, as_of]
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, kind, title]
+                      properties:
+                        id: {type: string, format: uuid}
+                        kind: {type: string}
+                        title: {type: string}
+                  edges:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, from_id, relation, to_id, citation_ids]
+                      properties:
+                        id: {type: string, format: uuid}
+                        from_id: {type: string, format: uuid}
+                        relation: {type: string}
+                        to_id: {type: string, format: uuid}
+                        citation_ids: {type: array, items: {type: string}}
+                  next_cursor: {type: [string, 'null']}
+                  as_of: {type: string, format: date-time}
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /continuity:
+    post:
+      operationId: createContinuityDraft
+      summary: Build an as-of handover draft within the caller's source access
+      description: |
+        Requires role/scope permission for the employee and resource-level checks.
+        Does not grant a successor private source access, disable an account, or
+        execute reassignment. Stable employee attribution survives offboarding.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [employee_id, purpose]
+              properties:
+                employee_id: {type: string, format: uuid}
+                purpose: {type: string, minLength: 10, maxLength: 1000}
+                scope:
+                  $ref: '#/components/schemas/Scope'
+      responses:
+        '202':
+          $ref: '#/components/responses/AcceptedJob'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /continuity/{snapshot_id}:
+    get:
+      operationId: getContinuityDraft
+      summary: Read a handover snapshot after fresh authorization
+      parameters:
+        - name: snapshot_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: |
+            Snapshot is immutable evidence selection; access is checked on every
+            read/export. Invalidated evidence is withheld and gaps are recalculated.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, employee_id, as_of, sections, coverage, gaps, state]
+                properties:
+                  id: {type: string, format: uuid}
+                  employee_id: {type: string, format: uuid}
+                  as_of: {type: string, format: date-time}
+                  state: {type: string, enum: [draft, reviewed, accepted, invalidated]}
+                  sections:
+                    type: array
+                    items:
+                      type: object
+                      required: [title, items]
+                      properties:
+                        title: {type: string}
+                        items:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/SearchResult'
+                  coverage:
+                    type: object
+                    required: [reviewed_current_responsibilities, discovered_active_responsibilities, definition]
+                    properties:
+                      reviewed_current_responsibilities: {type: integer, minimum: 0}
+                      discovered_active_responsibilities: {type: integer, minimum: 0}
+                      definition: {type: string}
+                  gaps: {type: array, items: {type: string}}
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /actions/proposals:
+    post:
+      operationId: proposeAction
+      summary: Create a validated exact action plan for approval
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [action_type, target_id, expected_target_version, changes, reason]
+              properties:
+                action_type: {type: string, enum: [project.update_task, workflow.reassign_owner]}
+                target_id: {type: string, format: uuid}
+                expected_target_version: {type: string, minLength: 1, maxLength: 200}
+                changes:
+                  type: object
+                  additionalProperties: false
+                  minProperties: 1
+                  properties:
+                    assignee_id: {type: string, format: uuid}
+                    due_at: {type: string, format: date-time}
+                    status: {type: string, enum: [todo, in_progress, blocked, done]}
+                reason: {type: string, minLength: 10, maxLength: 2000}
+      responses:
+        '201':
+          description: Exact immutable proposed plan; approver chosen by policy, not requester.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /approvals/{proposal_id}/decisions:
+    post:
+      operationId: decideActionApproval
+      summary: Approve or reject an unchanged plan as a distinct authorized approver
+      parameters:
+        - $ref: '#/components/parameters/ProposalId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [expected_plan_hash, decision, reason]
+              properties:
+                expected_plan_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+                decision: {type: string, enum: [approve, reject]}
+                reason: {type: string, minLength: 1, maxLength: 2000}
+      responses:
+        '200':
+          description: Decision recorded; execution is a separate operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Proposal'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /actions/{proposal_id}/execute:
+    post:
+      operationId: executeApprovedAction
+      summary: Execute an approved plan through the service-only action gateway
+      description: |
+        Requires execution-service identity, never a normal browser token. Recheck
+        active requester/approver, target access, plan hash, expiry, policy version,
+        current target version and idempotency. Changed plans return to approval.
+        Record source receipt; external side effects may need compensation.
+      parameters:
+        - $ref: '#/components/parameters/ProposalId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          $ref: '#/components/responses/AcceptedJob'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /connectors/{connector_id}/events:
+    post:
+      operationId: ingestSignedConnectorEvent
+      summary: Durably ingest a provider-authenticated webhook
+      security: []
+      description: |
+        No browser bearer auth. Authenticate provider signature against original raw
+        bytes before JSON parsing. Installation determines tenant. Slack requires
+        X-Slack-Signature and timestamp/replay window; GitHub requires
+        X-Hub-Signature-256 and X-GitHub-Delivery. Never require both providers'
+        headers simultaneously. Persist unique delivery envelope before ACK.
+        Provider-specific URL challenge handshake is handled without LLM work.
+        Slack ACK <3 seconds; GitHub.com target <10 seconds; operational p95 <1 sec.
+        Payload caps and source scopes are enforced per connector configuration.
+      parameters:
+        - name: connector_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+        - name: X-Slack-Signature
+          in: header
+          schema: {type: string}
+        - name: X-Slack-Request-Timestamp
+          in: header
+          schema: {type: string}
+        - name: X-Hub-Signature-256
+          in: header
+          schema: {type: string}
+        - name: X-GitHub-Delivery
+          in: header
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: true}
+      responses:
+        '200':
+          description: Duplicate already durably recorded, or authenticated provider challenge.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challenge: {type: string}
+                  accepted: {type: boolean}
+        '202':
+          description: Durable receipt accepted; extraction asynchronous.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '413':
+          description: Payload exceeds connector-specific maximum.
+        '503':
+          $ref: '#/components/responses/Unavailable'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: OIDC access token
+      description: Verify issuer, audience, signature, expiry, tenant mapping and active session server-side.
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Opaque key scoped to tenant + principal + route. Persist request hash and
+        original result; same key/different body is 409. Retention must outlast retries.
+      schema: {type: string, minLength: 16, maxLength: 200}
+    ProposalId:
+      name: proposal_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+  schemas:
+    UpdateInput:
+      type: object
+      additionalProperties: false
+      required: [work_date, project_ids, completed, current_tasks, upcoming, blockers, dependencies]
+      properties:
+        work_date: {type: string, format: date}
+        project_ids:
+          type: array
+          maxItems: 20
+          uniqueItems: true
+          items: {type: string, format: uuid}
+        completed:
+          $ref: '#/components/schemas/UpdateLines'
+        current_tasks:
+          $ref: '#/components/schemas/UpdateLines'
+        upcoming:
+          $ref: '#/components/schemas/UpdateLines'
+        blockers:
+          $ref: '#/components/schemas/UpdateLines'
+        dependencies:
+          $ref: '#/components/schemas/UpdateLines'
+    UpdateLines:
+      type: array
+      maxItems: 30
+      items: {type: string, minLength: 1, maxLength: 2000}
+    Scope:
+      type: object
+      additionalProperties: false
+      description: Requested narrowing only; cannot expand caller authority.
+      properties:
+        department_id: {type: string, format: uuid}
+        project_ids: {type: array, maxItems: 20, items: {type: string, format: uuid}}
+    SearchInput:
+      type: object
+      additionalProperties: false
+      required: [query]
+      properties:
+        query: {type: string, minLength: 1, maxLength: 2000}
+        scope:
+          $ref: '#/components/schemas/Scope'
+        effective_at: {type: string, format: date-time}
+        known_at: {type: string, format: date-time}
+        limit: {type: integer, minimum: 1, maximum: 50, default: 20}
+        cursor: {type: string, maxLength: 4096}
+    SearchResult:
+      type: object
+      required: [id, kind, title, excerpt, state, citations]
+      properties:
+        id: {type: string, format: uuid}
+        kind: {type: string}
+        title: {type: string}
+        excerpt: {type: string}
+        state: {type: string, enum: [observed, proposed, accepted, disputed, superseded, withdrawn]}
+        citations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Citation'
+    Citation:
+      type: object
+      required: [id, source_resource_id, source_version_id, source_url, revision, span_start, span_end, span_unit, observed_at]
+      properties:
+        id: {type: string}
+        source_resource_id: {type: string, format: uuid}
+        source_version_id: {type: string, format: uuid}
+        source_url: {type: string, format: uri}
+        revision: {type: string}
+        span_start: {type: integer, minimum: 0}
+        span_end: {type: integer, minimum: 1}
+        span_unit: {type: string, const: utf8_bytes}
+        observed_at: {type: string, format: date-time}
+    Job:
+      type: object
+      required: [id, state, stage, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        state: {type: string, enum: [queued, running, awaiting_review, completed, failed]}
+        stage: {type: string, enum: [captured, normalized, extracted, validated, review, committed, projected, executed]}
+        resource_id: {type: [string, 'null'], format: uuid}
+        updated_at: {type: string, format: date-time}
+        safe_error_code: {type: [string, 'null']}
+    Proposal:
+      type: object
+      required: [id, action_type, plan_hash, target_version, required_approver_id, expires_at, state]
+      properties:
+        id: {type: string, format: uuid}
+        action_type: {type: string}
+        plan_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        target_version: {type: string}
+        required_approver_id: {type: string, format: uuid}
+        expires_at: {type: string, format: date-time}
+        state: {type: string, enum: [pending, approved, rejected, expired, executing, executed, failed, cancelled]}
+    Error:
+      type: object
+      required: [code, message, request_id]
+      properties:
+        code: {type: string}
+        message: {type: string, description: Safe public message; no private object titles or existence clues.}
+        request_id: {type: string, format: uuid}
+  responses:
+    AcceptedJob:
+      description: Durably accepted for asynchronous processing.
+      headers:
+        Location:
+          description: Authorized processing-job URL.
+          schema: {type: string, format: uri-reference}
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Job'
+    Invalid:
+      description: Invalid schema, scope, cursor or input; no private details.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthenticated:
+      description: Missing/invalid identity or provider signature.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Caller cannot perform this action; source existence is not disclosed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource unavailable; identical response for invisible and nonexistent IDs.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Stale object/plan, expired approval, changed idempotent body or invalid transition.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Throttled:
+      description: Tenant quota, token budget or concurrency exceeded.
+      headers:
+        Retry-After:
+          schema: {type: integer, minimum: 1}
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unavailable:
+      description: Durable storage, policy freshness or required provider unavailable; fail closed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

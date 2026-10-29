@@ -1,0 +1,64 @@
+COMPANY BRAIN · SAMPLE HANDOVER
+Alex Morgan · Senior Backend Engineer
+Demo view: Department head
+Generated from authorized documented sources only. Tacit knowledge and inaccessible sources are not included. All operational data is fictional.
+
+RESPONSIBILITIES
+- Use an incremental rollout for CI Insights [verified]
+  Decision accepted on October 27: release CI Insights to 10% of eligible workspaces first. Why: the query planner increases p95 latency on large projects. A full launch depends on the load-test results and the observability review. Alex Morgan owns the query optimization; Sarah Park owns the launch checklist. Previous proposal: full launch on October 30. Superseded by staged launch on November 3.
+  Source: Architecture review · decision ADR-042
+
+- Resolve query latency regression [verified]
+  CI Insights launch is blocked by a p95 query latency regression: 420 ms against a 250 ms target. Alex Morgan is adding a composite index and Noah Williams will run the load test. Due October 30. Depends on anonymized production-like test data from the platform team.
+  Source: Issue #2841 · performance investigation
+
+- Alex’s daily update [verified]
+  Completed: benchmarked the composite index on the staging dataset. Working on: CI Insights query optimization. Next: run the 100k-pipeline benchmark with Noah. Blocker: waiting for anonymized load-test data. Dependency: platform team dataset delivery.
+  Source: #team-platform · Oct 29, 09:12
+
+- CI Insights service runbook [verified]
+  Runbook: validate p95 latency; check the slow-query dashboard; confirm index state; run canary; monitor 5xx; rollback through feature flag ci_insights_v2. Primary owner: Alex Morgan. Backup: Noah Williams. Last drill: October 15. Gap: the emergency rollback video is missing.
+  Source: Platform / CI Insights / Runbook v3
+
+- Composite index for pipeline analytics [reported]
+  Merge request !187 adds a composite index on project_id and created_at. Author: Alex Morgan. Review requested from Noah Williams. Benchmark evidence is attached to issue #2841. This change is still under review; it does not prove the latency regression is resolved.
+  Source: MR !187 · index pipeline events
+
+- API gateway service catalog [disputed]
+  October 20 service catalog records Alex Morgan as the primary owner of API gateway certificate rotation. Noah Williams is listed as backup. Ownership conflicts with the October 28 handover note; confirmation is required.
+  Source: Service catalog v8 · Oct 20
+
+- Rotate API gateway certificates [verified]
+  Certificate rotation is due November 2. Runbook exists but accountable ownership is disputed between Alex Morgan and Noah Williams. Maya Chen should resolve this before assignment.
+  Source: OPS-204 · certificate rotation
+
+- Alex’s daily update [verified]
+  Completed: Benchmarked the composite index on the CI Insights staging dataset.. Working on: Optimizing CI Insights query latency before the limited rollout.. Next: Run the 100k-pipeline load test with Noah Williams.. Blocker: Waiting for the anonymized load-test dataset.. Dependency: Platform team dataset delivery; Sarah Park’s launch checklist..
+  Source: Dashboard daily pulse · employee self-report
+
+DEPENDENCIES
+- Complete CI Insights launch checklist: Sarah Park is preparing the launch checklist for November 3. Customer Success needs the FAQ and a confirmed staged rollout date. Depends on Alex Morgan resolving the latency regression and Noah Williams completing load tests.
+  Source: Project CI-18 · launch checklist
+- CI Insights: CI Insights connects pipeline reliability signals to actionable recommendations. Owner: Sarah Park. Engineering lead: Maya Chen. Target milestone: November 3, 2026. Current stage: limited rollout preparation. Dependencies: query optimization, load-test sign-off, customer FAQ.
+  Source: CI Insights · project brief
+- Platform architecture review: October 27 review with Alex Morgan, Maya Chen, and Noah Williams. The team evaluated caching versus composite indexes. Composite indexing was chosen first because cache invalidation adds operational complexity. Alex will benchmark the index; Noah will validate against a production-like load. The meeting notes link to accepted decision ADR-042.
+  Source: Architecture review · approved notes
+- Canary release procedure: A canary release requires load-test evidence, an approved rollout decision, an on-call owner, a rollback flag, and a Customer Success notification. Increasing exposure from 10% to 50% requires the engineering manager approval after a 24-hour observation window.
+  Source: Engineering handbook · release procedure
+- Daily pulse procedure: Share what you completed, your current work, next priorities, blockers and dependencies. Structured updates remain self-reports until corroborated or reviewed by an authorized colleague. The brain links updates to projects and preserves the original wording.
+  Source: People operations · daily pulse
+- API gateway ownership is disputed: Two current sources disagree: the service catalog names Alex Morgan as gateway owner, while the October 28 handover note names Noah Williams. This remains a disputed ownership claim. Maya Chen must confirm the accountable owner. The brain preserves both sources and will not pick a winner based on recency alone.
+  Source: Conflict C-003 · two source records
+- API gateway handover note: October 28 draft handover note lists Noah Williams as primary owner of certificate rotation. It has not been accepted by the team manager. Conflicts with service catalog v8.
+  Source: Gateway handover · draft
+- Launch readiness review: Scheduled for October 30, 15:00 IST. Attendees: Maya, Sarah, Alex and James. Agenda: load-test results, customer FAQ, rollout decision. A calendar event is not evidence that the review has happened.
+  Source: Shared calendar · readiness review
+
+COVERAGE GAPS
+- CI Insights operations: Rollback drill video is missing.
+- Gateway ownership: Primary owner is disputed.
+
+NEXT ACTIONS
+- Authorized manager confirms responsibilities and successor access.
+- Successor accepts handover and resolves documented gaps.
+- No external assignment or message is performed by this demo.

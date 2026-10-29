@@ -1,0 +1,31 @@
+# dist/ is hand-authored application source and intentionally tracked.
+
+# Credentials and account-specific hosting state
+.env
+.env.*
+!.env.example
+.openai/
+*.pem
+*.key
+*.p12
+
+# Dependencies, Python environments and caches
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+coverage/
+.cache/
+
+# Local scratch, packages and editor/OS files
+work/
+*.tar
+*.tar.gz
+*.zip
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
