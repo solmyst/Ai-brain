@@ -1,13 +1,13 @@
 export const people = [
- {id:'maya',name:'Maya Chen',initials:'MC',title:'Engineering Manager',department:'Engineering',color:'#dfece7'},
- {id:'alex',name:'Alex Morgan',initials:'AM',title:'Senior Backend Engineer',department:'Engineering',color:'#e8e3f4'},
- {id:'sarah',name:'Sarah Park',initials:'SP',title:'Product Manager',department:'Product',color:'#f8e5ce'},
- {id:'james',name:'James Okafor',initials:'JO',title:'Customer Success Lead',department:'Customer Success',color:'#e1ecf6'},
- {id:'priya',name:'Priya Shah',initials:'PS',title:'People Partner',department:'People',color:'#f6dee5'},
- {id:'noah',name:'Noah Williams',initials:'NW',title:'Platform Engineer',department:'Engineering',color:'#e0e9f1'},
- {id:'elena',name:'Elena Ruiz',initials:'ER',title:'VP of Engineering',department:'Engineering',color:'#e4e8d5'},
- {id:'leo',name:'Leo Tan',initials:'LT',title:'Executive Sponsor',department:'Executive',color:'#eadfd7'},
- {id:'admin',name:'Jordan Ellis',initials:'JE',title:'Workspace Administrator',department:'IT',color:'#e4e4e9'}
+ {id:'maya',name:'Maya Chen',initials:'MC',title:'Engineering Manager',department:'Engineering',color:'#dfe3ec'},
+ {id:'alex',name:'Alex Morgan',initials:'AM',title:'Senior Backend Engineer',department:'Engineering',color:'#e3e8f4'},
+ {id:'sarah',name:'Sarah Park',initials:'SP',title:'Product Manager',department:'Product',color:'#cfdcf7'},
+ {id:'james',name:'James Okafor',initials:'JO',title:'Customer Success Lead',department:'Customer Success',color:'#e1e8f6'},
+ {id:'priya',name:'Priya Shah',initials:'PS',title:'People Partner',department:'People',color:'#dee5f6'},
+ {id:'noah',name:'Noah Williams',initials:'NW',title:'Platform Engineer',department:'Engineering',color:'#e0e5f1'},
+ {id:'elena',name:'Elena Ruiz',initials:'ER',title:'VP of Engineering',department:'Engineering',color:'#d5dbe8'},
+ {id:'leo',name:'Leo Tan',initials:'LT',title:'Executive Sponsor',department:'Executive',color:'#d7ddea'},
+ {id:'admin',name:'Jordan Ellis',initials:'JE',title:'Workspace Administrator',department:'IT',color:'#e4e6e9'}
 ];
 export const roles = {
  employee:{label:'Employee',person:'alex',department:'Engineering',description:'Alex Morgan · own work + explicitly shared sources'},
@@ -49,17 +49,17 @@ export const seedRecords = [
  rec('p3','Project','Onboarding refresh','Priya Shah is updating the new-hire onboarding guide. Current focus: connecting each process to an owner and ensuring backup coverage.','People','Linear','priya',company,{project:'Onboarding refresh',related:['doc2','proc2'],evidence:'People operations · onboarding project'})
 ];
 export const connectors = [
- {name:'Slack',type:'Conversations & updates',icon:'slack',color:'#8d547f',scope:'Only approved channels; DMs excluded by default',flow:'Signed event → durable queue → update/conversation agent',records:3},
- {name:'GitLab',type:'Code, issues & reviews',icon:'gitlab',color:'#ed773b',scope:'Selected projects and repository permissions',flow:'Webhook + reconcile → code agent → task/decision links',records:5},
- {name:'GitHub',type:'Code & pull requests',icon:'github',color:'#303d42',scope:'Selected repositories; app installation scope',flow:'Signed delivery → dedup → code agent → evidence',records:0},
- {name:'Linear',type:'Projects & tasks',icon:'linear',color:'#666ad7',scope:'Selected teams and project visibility',flow:'Issue event → task normalizer → dependency graph',records:6},
- {name:'Notion',type:'Documents & procedures',icon:'notion',color:'#303d42',scope:'Only explicitly shared pages; inherited page ACL',flow:'Page revision → document agent → versioned memory',records:7},
- {name:'Google Drive',type:'Documents & files',icon:'drive',color:'#3e8b66',scope:'File ACLs, groups and current grants',flow:'Change cursor → revision fetch → source-backed claims',records:2},
- {name:'Email',type:'Shared conversations',icon:'mail',color:'#c45e55',scope:'Opted-in shared mailboxes; personal inbox excluded',flow:'Delta sync → conversation agent → claim proposals',records:1},
- {name:'Calendar',type:'Time & commitments',icon:'calendar',color:'#497bc6',scope:'Approved shared calendars and event visibility',flow:'Event delta → commitments agent → temporal context',records:1},
- {name:'Meetings',type:'Notes & transcripts',icon:'video',color:'#4c8a9b',scope:'Consent, attendance and recording permissions',flow:'Approved transcript → meeting agent → reviewed decisions',records:2},
- {name:'Salesforce',type:'Customers & relationships',icon:'cloud',color:'#2c96c4',scope:'Object, field and record sharing permissions',flow:'CDC → customer agent → account/project context',records:1},
- {name:'Workday',type:'People & responsibilities',icon:'people',color:'#c59540',scope:'Minimal employment and reporting fields; case data excluded',flow:'Approved HR event → identity sync → continuity workflow',records:1}
+ {name:'Slack',type:'Conversations & updates',icon:'slack',color:'#3e5da3',scope:'Only approved channels; DMs excluded by default',flow:'Signed event → durable queue → update/conversation agent',records:3},
+ {name:'GitLab',type:'Code, issues & reviews',icon:'gitlab',color:'#3b72ed',scope:'Selected projects and repository permissions',flow:'Webhook + reconcile → code agent → task/decision links',records:5},
+ {name:'GitHub',type:'Code & pull requests',icon:'github',color:'#1f2f53',scope:'Selected repositories; app installation scope',flow:'Signed delivery → dedup → code agent → evidence',records:0},
+ {name:'Linear',type:'Projects & tasks',icon:'linear',color:'#6689d7',scope:'Selected teams and project visibility',flow:'Issue event → task normalizer → dependency graph',records:6},
+ {name:'Notion',type:'Documents & procedures',icon:'notion',color:'#1f2f53',scope:'Only explicitly shared pages; inherited page ACL',flow:'Page revision → document agent → versioned memory',records:7},
+ {name:'Google Drive',type:'Documents & files',icon:'drive',color:'#375392',scope:'File ACLs, groups and current grants',flow:'Change cursor → revision fetch → source-backed claims',records:2},
+ {name:'Email',type:'Shared conversations',icon:'mail',color:'#c45655',scope:'Opted-in shared mailboxes; personal inbox excluded',flow:'Delta sync → conversation agent → claim proposals',records:1},
+ {name:'Calendar',type:'Time & commitments',icon:'calendar',color:'#4970c6',scope:'Approved shared calendars and event visibility',flow:'Event delta → commitments agent → temporal context',records:1},
+ {name:'Meetings',type:'Notes & transcripts',icon:'video',color:'#4060a7',scope:'Consent, attendance and recording permissions',flow:'Approved transcript → meeting agent → reviewed decisions',records:2},
+ {name:'Salesforce',type:'Customers & relationships',icon:'cloud',color:'#2c5bc4',scope:'Object, field and record sharing permissions',flow:'CDC → customer agent → account/project context',records:1},
+ {name:'Workday',type:'People & responsibilities',icon:'people',color:'#4069c5',scope:'Minimal employment and reporting fields; case data excluded',flow:'Approved HR event → identity sync → continuity workflow',records:1}
 ];
 export const risks = [
  {id:'r1',title:'CI Insights is waiting on load-test data',body:'One blocker connects Engineering, Product and the Northstar pilot.',severity:'High',record:'t1',owner:'maya',department:'Engineering'},
